@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pertemuan10_2306053/models/product_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pertemuan10_2306053/pages/login_page.dart';
 
@@ -11,12 +12,148 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String username = '';
+  List<ProductModel> products = [];
 
   @override
   void initState() {
     super.initState();
     getUser();
+    loadProducts();
   }
+
+  Future<void> loadProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? productList = prefs.getStringList('products') ?? [];
+    setState(() {
+      products = productList
+          .map((item) => ProductModel.fromJson(item))
+          .toList();
+    });
+  }
+
+  Future<void> saveProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> productList = products.map((item) => item.toJson()).toList();
+    await prefs.setStringList('products', productList);
+  }
+
+  Future<void> addProduct(ProductModel product) async {
+    setState(() {
+      products.add(product);
+    });
+    await saveProducts();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Produk Berhasil Ditambahkan")),
+    );
+  }
+
+  Future<void> updateProduct(int index, ProductModel product) async{
+    setState((){
+      products[index] = product;
+    });
+    await saveProducts();
+  }
+
+  Future<void> deleteProduct(int index) async {
+    setState(() {
+      products.removeAt(index);
+    });
+    await saveProducts();
+    ScaffoldMessenger.of(
+    context,
+    ).showSnackBar(const SnackBar(content: Text("Produk Berhasil Dihapus")));
+  }
+
+  //showform
+  void showForm({ProductModel? product, int? index}){
+    final _formKey = GlobalKey<FormState>();
+    TextEditingController nameController = TextEditingController(
+      text: product?.name ?? ""
+    );
+    TextEditingController descriptionController = TextEditingController(
+      text: product?.description ?? ""
+    );
+    TextEditingController priceController = TextEditingController(
+      text: product?.price.toString() ?? ""
+    );
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(product == null ? "Tambah Produk" : "Edit Produk"),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: "Nama",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nama tidak boleh kosong';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: "Deskripsi",
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Deskripsi tidak boleh kosong';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: priceController,
+                decoration: const InputDecoration(
+                  labelText: "Harga",
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Harga tidak boleh kosong';
+                  }
+                  if (int.tryParse(value.trim()) == null) {
+                    return 'Harga harus berupa angka';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+
+        actions: [
+          ElevatedButton(
+            onPressed: (){
+              if (_formKey.currentState?.validate() ?? false) {
+                final newProduct = ProductModel(
+                  name: nameController.text,
+                  description: descriptionController.text,
+                  price: int.parse(priceController.text.trim()),
+                );
+                if (product == null) {
+                  addProduct(newProduct);
+                } else {
+                  updateProduct(index!, newProduct);
+                }
+                Navigator.pop(context);
+              }
+            },
+            child: Text(product == null ? "Simpan" : "Pembaruan"),
+          )
+        ],
+      )
+    );
+  }
+  
 
   Future<void> getUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -65,7 +202,7 @@ class _HomePageState extends State<HomePage> {
           color: Color.fromARGB(255, 135, 13, 5),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -170,7 +307,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Mencapai tujuan besar dimulai dari langkah kecil hari ini.',
+                        'Be What You Want, Not What You Should',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -178,7 +315,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       SizedBox(height: 12),
                       Text(
-                        'Terus bergerak maju, meski pelan. Setiap usaha kamu adalah investasi untuk masa depan yang lebih baik.',
+                        'Setiap Langkah, Setiap Perjalanan Adalah Pilihan Yang Kau Tentukan. Jadilah Dirimu Sendiri, Bukan Apa Yang Orang Lain Harapkan.',
                         style: TextStyle(
                           color: Colors.black54,
                           fontSize: 14,
@@ -187,12 +324,64 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: products.isEmpty
+                      ? const Center(child: Text("Belum ada produk"))
+                      : ListView.builder(
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(15),
+                                title: Text(
+                                  product.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Rp ${product.price}"),
+                                    Text(product.description),
+                                  ],
+                                ),
+
+                                leading: IconButton(
+                                  icon: const Icon(Icons.edit, 
+                                  color: Color.fromARGB(255, 243, 173, 33)
+                                  ),
+                                  onPressed: () => showForm(product: product, index: index),
+                                ),
+
+                                trailing: IconButton(
+                                  icon: const Icon(
+                                    Icons.delete, 
+                                  color: Color.fromARGB(255, 243, 33, 33)
+                                  ),
+                                  onPressed: () => deleteProduct(index),
+                                )
+                              ),
+                            );
+                          },
+                        ),
+                )
               ],
             ),
           ),
         ),
       ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: showForm,
+          child: const Icon(Icons.add),
+        ),
     );
   }
-
 }

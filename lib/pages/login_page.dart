@@ -18,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   
   Future<void> login() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
+    await prefs.setBool('isLogin', true);
     await prefs.setString('username', usernameController.text);
 
     Navigator.pushReplacement(
@@ -60,6 +60,9 @@ class _LoginPageState extends State<LoginPage> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Username tidak boleh kosong';
+                        }
+                        if (value.length < 8) {
+                          return 'Username minimal 8 karakter';
                         }
                         return null;
                       },
