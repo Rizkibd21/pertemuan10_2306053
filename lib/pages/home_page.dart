@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pertemuan10_2306053/models/product_model.dart';
+import 'package:pertemuan10_2306053/pages/product_detail_page.dart';
+import 'package:pertemuan10_2306053/pages/product_page.dart';
+import 'package:pertemuan10_2306053/widget/product_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pertemuan10_2306053/pages/login_page.dart';
 
@@ -12,7 +15,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String username = '';
+
+  // variabel utama untuk daftar data produk
   List<ProductModel> products = [];
+
+  // variabel untuk total data
+  int totalProducts = 0;
 
   @override
   void initState() {
@@ -24,136 +32,14 @@ class _HomePageState extends State<HomePage> {
   Future<void> loadProducts() async {
     final prefs = await SharedPreferences.getInstance();
     List<String>? productList = prefs.getStringList('products') ?? [];
+    totalProducts = productList.length;
     setState(() {
-      products = productList
+      products = productList.reversed
+          .take(3)
           .map((item) => ProductModel.fromJson(item))
           .toList();
     });
   }
-
-  Future<void> saveProducts() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> productList = products.map((item) => item.toJson()).toList();
-    await prefs.setStringList('products', productList);
-  }
-
-  Future<void> addProduct(ProductModel product) async {
-    setState(() {
-      products.add(product);
-    });
-    await saveProducts();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Produk Berhasil Ditambahkan")),
-    );
-  }
-
-  Future<void> updateProduct(int index, ProductModel product) async{
-    setState((){
-      products[index] = product;
-    });
-    await saveProducts();
-  }
-
-  Future<void> deleteProduct(int index) async {
-    setState(() {
-      products.removeAt(index);
-    });
-    await saveProducts();
-    ScaffoldMessenger.of(
-    context,
-    ).showSnackBar(const SnackBar(content: Text("Produk Berhasil Dihapus")));
-  }
-
-  //showform
-  void showForm({ProductModel? product, int? index}){
-    final _formKey = GlobalKey<FormState>();
-    TextEditingController nameController = TextEditingController(
-      text: product?.name ?? ""
-    );
-    TextEditingController descriptionController = TextEditingController(
-      text: product?.description ?? ""
-    );
-    TextEditingController priceController = TextEditingController(
-      text: product?.price.toString() ?? ""
-    );
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(product == null ? "Tambah Produk" : "Edit Produk"),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: "Nama",
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Nama tidak boleh kosong';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: "Deskripsi",
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Deskripsi tidak boleh kosong';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: priceController,
-                decoration: const InputDecoration(
-                  labelText: "Harga",
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Harga tidak boleh kosong';
-                  }
-                  if (int.tryParse(value.trim()) == null) {
-                    return 'Harga harus berupa angka';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-
-        actions: [
-          ElevatedButton(
-            onPressed: (){
-              if (_formKey.currentState?.validate() ?? false) {
-                final newProduct = ProductModel(
-                  name: nameController.text,
-                  description: descriptionController.text,
-                  price: int.parse(priceController.text.trim()),
-                );
-                if (product == null) {
-                  addProduct(newProduct);
-                } else {
-                  updateProduct(index!, newProduct);
-                }
-                Navigator.pop(context);
-              }
-            },
-            child: Text(product == null ? "Simpan" : "Pembaruan"),
-          )
-        ],
-      )
-    );
-  }
-  
 
   Future<void> getUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -176,21 +62,30 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color.fromARGB(255, 135, 13, 5),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(0, 255, 255, 255),
+        backgroundColor: const Color.fromARGB(255, 149, 9, 9),
         elevation: 0,
-        title: const Text('Home Page', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Home Page',
+          style: TextStyle(
+            color: Color.fromARGB(255, 255, 255, 255),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           TextButton.icon(
             onPressed: logout,
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(
+              Icons.logout,
+              color: Color.fromARGB(255, 255, 255, 255),
+            ),
             label: const Text(
               'Logout',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
             ),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: Color.fromARGB(255, 255, 255, 255),
             ),
           ),
         ],
@@ -198,9 +93,7 @@ class _HomePageState extends State<HomePage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 135, 13, 5),
-        ),
+        decoration: const BoxDecoration(color: Colors.white),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -210,14 +103,23 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.14),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 149, 9, 9),
+                        Color.fromARGB(255, 191, 100, 100),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(
+                      color: const Color.fromARGB(255, 149, 9, 9),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -229,7 +131,10 @@ class _HomePageState extends State<HomePage> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: const LinearGradient(
-                            colors: [Color(0xfff5b182), Color(0xffffd08b)],
+                            colors: [
+                              Color.fromARGB(255, 255, 255, 255),
+                              Color.fromARGB(255, 255, 255, 255),
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -244,18 +149,19 @@ class _HomePageState extends State<HomePage> {
                         child: const Icon(
                           Icons.person,
                           size: 38,
-                          color: Colors.white,
+                          color: Color.fromARGB(255, 149, 9, 9),
                         ),
                       ),
                       const SizedBox(width: 18),
+
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Selamat Datang',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: Colors.white.withOpacity(0.9),
                                 fontSize: 14,
                               ),
                             ),
@@ -270,15 +176,18 @@ class _HomePageState extends State<HomePage> {
                             ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white24,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                'Akses akun modern Anda',
+                              child: Text(
+                                'Akses akun Anda',
                                 style: TextStyle(
-                                  color: Colors.white70,
+                                  color: Colors.white.withOpacity(0.9),
                                   fontSize: 12,
                                 ),
                               ),
@@ -293,7 +202,7 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -305,19 +214,20 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Be What You Want, Not What You Should',
                         style: TextStyle(
+                          color: Color.fromARGB(255, 0, 0, 0),
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Setiap Langkah, Setiap Perjalanan Adalah Pilihan Yang Kau Tentukan. Jadilah Dirimu Sendiri, Bukan Apa Yang Orang Lain Harapkan.',
                         style: TextStyle(
-                          color: Colors.black54,
+                          color: Color.fromARGB(255, 0, 0, 0),
                           fontSize: 14,
                         ),
                       ),
@@ -325,6 +235,39 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Total Produk ${totalProducts.toString()}",
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 0, 0, 0),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductPage(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Lihat Selengkapnya",
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 0, 0, 0),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 Expanded(
                   child: products.isEmpty
                       ? const Center(child: Text("Belum ada produk"))
@@ -333,55 +276,17 @@ class _HomePageState extends State<HomePage> {
                           itemBuilder: (context, index) {
                             final product = products[index];
 
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(15),
-                                title: Text(
-                                  product.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text("Rp ${product.price}"),
-                                    Text(product.description),
-                                  ],
-                                ),
-
-                                leading: IconButton(
-                                  icon: const Icon(Icons.edit, 
-                                  color: Color.fromARGB(255, 243, 173, 33)
-                                  ),
-                                  onPressed: () => showForm(product: product, index: index),
-                                ),
-
-                                trailing: IconButton(
-                                  icon: const Icon(
-                                    Icons.delete, 
-                                  color: Color.fromARGB(255, 243, 33, 33)
-                                  ),
-                                  onPressed: () => deleteProduct(index),
-                                )
-                              ),
+                            return ProductCard(
+                              product: product,
                             );
                           },
                         ),
-                )
+                ),
               ],
             ),
           ),
         ),
       ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: showForm,
-          child: const Icon(Icons.add),
-        ),
     );
   }
 }
