@@ -3,6 +3,9 @@ import 'package:pertemuan10_2306053/models/product_model.dart';
 import 'package:pertemuan10_2306053/pages/product_detail_page.dart';
 import 'package:pertemuan10_2306053/widget/product_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key});
@@ -58,6 +61,13 @@ class _ProductPageState extends State<ProductPage> {
     ).showSnackBar(const SnackBar(content: Text("Produk Berhasil Dihapus")));
   }
 
+  // methode convert gambar
+  Future<String> convertImageToBase64(XFile image) async{
+    Uint8List bytes = await image.readAsBytes();
+
+    return base64Encode(bytes);
+  }
+
   //showform
   void showForm({ProductModel? product, int? index}) {
     final _formKey = GlobalKey<FormState>();
@@ -70,16 +80,66 @@ class _ProductPageState extends State<ProductPage> {
     TextEditingController priceController = TextEditingController(
       text: product?.price.toString() ?? "",
     );
+    TextEditingController imgController = TextEditingController(
+      text: product?.image ?? '',
+    );
+
+    XFile? selectedImage;
+    final ImagePicker picker = ImagePicker();
+
+    // methode ambil gambar dari galeri
+    Future<void> pickImage(StateSetter setDialogState) async{
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image != null) {
+        setDialogState((){
+          selectedImage = image;
+          imgController.text = image.path;
+        });
+      }
+    }
+
+    Widget buildPreviewImage(){
+      if (selectedImage != null) {
+        return FutureBuilder<Uint8List>(
+          future: selectedImage!.readAsBytes(),
+          builder: (context, snapshot) {
+            //loading ketika upload gambar
+            if (!snapshot.hasData){
+              return const CircularProgressIndicator();
+            }
+
+            return Image.memory(
+              snapshot.data!,
+              width: 150,
+              height: 150,
+              fit: BoxFit.cover,
+            );
+          }  
+        );
+      }
+
+      if (product?.image.isNotEmpty ?? false) {
+        return Image.memory(
+          base64Decode(product!.image),
+          width: 150,
+          height: 150,
+          fit: BoxFit.cover,
+        );
+      }
+      return const SizedBox.shrink();
+    }
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(product == null ? "Tambah Produk" : "Edit Produk"),
-        content: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(product == null ? "Tambah Produk" : "Edit Produk"),
+          content: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               TextFormField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: "Nama"),
@@ -114,30 +174,49 @@ class _ProductPageState extends State<ProductPage> {
                   return null;
                 },
               ),
+              const SizedBox(height: 20,),
+              ElevatedButton.icon(
+                onPressed: () => pickImage(setDialogState), 
+                icon: Icon(Icons.image),
+                label: const Text("Pilih Gambar"),
+              ),
+              const SizedBox(height: 20,),
+              buildPreviewImage(),
+              const SizedBox(height: 20,)
             ],
           ),
-        ),
+      ),
 
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              if (_formKey.currentState?.validate() ?? false) {
-                final newProduct = ProductModel(
-                  name: nameController.text,
-                  description: descriptionController.text,
-                  price: int.parse(priceController.text.trim()),
-                );
-                if (product == null) {
-                  addProduct(newProduct);
-                } else {
-                  updateProduct(index!, newProduct);
-                }
-                Navigator.pop(context);
+      actions: [
+        ElevatedButton(
+          onPressed: () async {
+            if (_formKey.currentState?.validate() ?? false) {
+              // Tentukan gambar yang akan disimpan
+              String imageBase64 = '';
+              if (selectedImage != null) {
+                // Convert gambar baru ke base64
+                imageBase64 = await convertImageToBase64(
+                  selectedImage!);
               }
-            },
-            child: Text(product == null ? "Simpan" : "Pembaruan"),
-          ),
-        ],
+
+              final newProduct = ProductModel(
+                name: nameController.text,
+                description: descriptionController.text,
+                price: int.parse(priceController.text.trim()),
+                image: imageBase64
+              );
+              if (product == null) {
+                addProduct(newProduct);
+              } else {
+                updateProduct(index!, newProduct);
+              }
+              Navigator.pop(context);
+            }
+          },
+          child: Text(product == null ? "Simpan" : "Pembaruan"),
+        ),
+      ],
+        ),
       ),
     );
   }

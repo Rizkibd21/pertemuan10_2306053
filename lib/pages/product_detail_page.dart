@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pertemuan10_2306053/models/product_model.dart';
-
+import 'dart:convert';
 class ProductDetailPage extends StatelessWidget {
   // mebuat variabel untuk menampilkan data produk
   final ProductModel product;
@@ -31,10 +31,18 @@ class ProductDetailPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(product.name, 
-            style: TextStyle(
-            fontSize: 24, 
-            fontWeight: FontWeight.bold)
+            product.image.isNotEmpty
+              ? Image.memory(
+                base64Decode(product.image),
+                width: double.infinity,
+                height: 400,
+                fit: .cover,
+            ) : const Icon(Icons.image, size:400),
+            Text(
+              product.name, 
+              style: TextStyle(
+                fontSize: 24, 
+                fontWeight: FontWeight.bold)
             ),
             SizedBox(height: 10),
             Text("Rp ${product.price}"),

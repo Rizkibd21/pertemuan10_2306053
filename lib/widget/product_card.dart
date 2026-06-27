@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pertemuan10_2306053/models/product_model.dart';
 import 'package:pertemuan10_2306053/pages/product_detail_page.dart';
+import 'dart:convert';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -33,7 +34,15 @@ class ProductCard extends StatelessWidget {
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text("Rp ${product.price}"), Text(product.description)],
+          children: [
+            product.image.isNotEmpty
+            ? Image.memory(
+              base64Decode(product.image),
+              width: 120,
+              height: 120,
+              fit: .cover,
+            ) : const Icon(Icons.image, size:120),
+            Text("Rp ${product.price}"), Text(product.description)],
         ),
 
         trailing: Row(
